@@ -71,8 +71,20 @@ class Part:
 class AMpowder:
     """AM powder produced via a specified powder fabrication process"""
 
-    def __init__(self, name):
+    def __init__(self, name, density):
+        """
+        Initializes an instance of AMpowder class.
+
+        Parameters
+        ----------
+        name: str
+            Name of AM powder material.
+        density: int or float
+            Density (kg/m^3) of AM powder material.
+
+        """
         self.name = name
+        self.density = density
 
 
 def calc_ampowder_per_kg_part(amproc: LPBF, part: Part, recycle_times='inf'):
@@ -115,8 +127,13 @@ def calc_ampowder_per_kg_part(amproc: LPBF, part: Part, recycle_times='inf'):
 
     # calculate portion of scrap that is consolidated into supports & portion that is powder scrap
     am_2_scrap_volume = am_2_scrap * powder_volume
-    am_2_melted_scrap_waste = part.support_volume / am_2_scrap_volume
-    am_2_powder_scrap = 1 - am_2_melted_scrap_waste
+
+    if am_2_scrap_volume != 0:
+        am_2_melted_scrap_waste = part.support_volume / am_2_scrap_volume
+        am_2_powder_scrap = 1 - am_2_melted_scrap_waste
+    else:
+        am_2_melted_scrap_waste = 0
+        am_2_powder_scrap = 0
 
     am_2_reuse = amproc.scrap_reuse_frac
     am_2_other = 1 - am_2_reuse
@@ -127,22 +144,23 @@ def calc_ampowder_per_kg_part(amproc: LPBF, part: Part, recycle_times='inf'):
     if recycle_times == 'inf':
         # in case of infinite recycling, use inf geometric series sum to account for recycled powder scrap
         # offsetting need for virgin AM powder.
-        ampowder_per_kg_part = (1 / (am_2_part + (am_2_scrap * am_2_powder_scrap) / (1 - am_2_reuse)))
+        ampowder_per_kg_part = (1 / (am_2_part + (am_2_scrap * am_2_powder_scrap * am_2_reuse) / (1 - am_2_reuse)))
+
     elif recycle_times == 0:
         # case of no recycling
         ampowder_per_kg_part = (1 / am_2_part)
     else:
         # in case of fixed number of reuses for recycled powder scrap, use sum of geometric series for n terms
-        ampowder_per_kg_part = (1 / (am_2_part + (am_2_scrap * am_2_powder_scrap) * (1 - am_2_reuse ** recycle_times)
+        ampowder_per_kg_part = (1 / (am_2_part + (am_2_scrap * am_2_powder_scrap * am_2_reuse) * (1 - am_2_reuse ** recycle_times)
                                      / (1 - am_2_reuse)))
 
     # calculate kg of coproduct and waste generated in production of 1 kg AM powder for 100% part yield
-    kg_coproduct = (ampowder_per_kg_part - 1) * am_2_other_proc
-    kg_waste = ((ampowder_per_kg_part - 1) * (am_2_waste + am_2_melted_scrap_waste))
+    kg_coproduct = (ampowder_per_kg_part - 1) * am_2_other_proc * am_2_powder_scrap
+    kg_waste = ((ampowder_per_kg_part - 1) * (am_2_waste * am_2_powder_scrap + am_2_melted_scrap_waste))
 
     # Adjust coproduct and waste quantities
     effective_units = 1 / amproc.part_yield
-    kg_coproduct = kg_coproduct * (1 + effective_units)
-    kg_waste = kg_waste * (1 + effective_units) + ampowder_per_kg_part * (effective_units - 1)
+    kg_coproduct = kg_coproduct * effective_units
+    kg_waste = kg_waste * effective_units + ampowder_per_kg_part * (effective_units - 1)
 
-    return ampowder_per_kg_part, kg_waste, kg_coproduct
+    return ampowder_per_kg_part, kg_coproduct, kg_waste

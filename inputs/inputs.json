@@ -1,0 +1,8 @@
+{
+  "gas atomization yield": {
+    "high": 0.2,
+    "low": 0.1,
+    "avg": 0.15,
+    "source": "Anderson2017"
+  }
+}

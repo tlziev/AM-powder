@@ -44,7 +44,7 @@ class PowderFab:
         scrap_reuse_frac: float
             Fraction of scrap powder that can be recycled as feedstock for fabrication process (value between 0 and 1).
         scrap_coprod_frac: float
-            Fraction of non-recyclable scrap powder that can be used in a non-AM production process, i.e. a coproduct
+            Fraction of non-recyclable scrap powder that 77can be used in a non-AM production process, i.e. a coproduct
             (value between 0 and 1).
         """
         self.name = name
@@ -92,13 +92,13 @@ def calc_feedstock_per_kg_ampowder(powderfab: PowderFab, recycle_times='inf'):
     if recycle_times == 'inf':
         # in case of infinite recycling, use inf geometric series sum to account for recycled powder scrap
         # offsetting need for virgin feedstock.
-        feedstock_per_kg_ampowder = 1 / (powder_2_am + powder_2_scrap / (1 - powder_2_reuse))
+        feedstock_per_kg_ampowder = 1 / (powder_2_am + (powder_2_scrap * powder_2_reuse) / (1 - powder_2_reuse))
     elif recycle_times == 0:
         # case of no recycling
         feedstock_per_kg_ampowder = 1 / powder_2_am
     else:
         # in case of fixed number of reuses for recycled powder scrap, use sum of geometric series for n terms
-        feedstock_per_kg_ampowder = 1 / (powder_2_am + powder_2_scrap * (1 - powder_2_reuse ** recycle_times)
+        feedstock_per_kg_ampowder = 1 / (powder_2_am + (powder_2_scrap * powder_2_reuse)  * (1 - powder_2_reuse ** recycle_times)
                                          / (1 - powder_2_reuse))
 
     # calculate kg of coproduct and waste generated in production of 1 kg AM powder
